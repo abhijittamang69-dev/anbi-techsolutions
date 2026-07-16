@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assign Work | Admin</title>
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="/assets/css/dashboard.css">
+    <link rel="stylesheet" href="/assets/css/responsive.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <script>
+    (function requireAdminAuth() {
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (!token || user.role !== 'admin') {
+            window.location.href = 'https://anbi-tech.onrender.com/login.html';
+        }
+    })();
+    </script>
+    <div class="dash-layout">
+        <aside class="dash-sidebar" id="dashSidebar">
+            <div class="dash-sidebar-header"><i class="fas fa-microchip"></i><span>ANBI Tech</span></div>
+            <nav class="dash-nav">
+                <a href="dashboard.html" class="dash-nav-item"><i class="fas fa-home"></i> Dashboard</a>
+                <a href="bookings.html" class="dash-nav-item"><i class="fas fa-calendar-check"></i> Bookings</a>
+                <a href="quotations.html" class="dash-nav-item"><i class="fas fa-file-invoice"></i> Quotations</a>
+                <a href="technicians.html" class="dash-nav-item"><i class="fas fa-users-cog"></i> Technicians</a>
+                <a href="assign-work.html" class="dash-nav-item active"><i class="fas fa-tasks"></i> Assign Work</a>
+                <a href="reports.html" class="dash-nav-item"><i class="fas fa-chart-bar"></i> Reports</a>
+                <a href="profile.html" class="dash-nav-item"><i class="fas fa-user-circle"></i> My Profile</a>
+                <a href="#" onclick="logout();return false;" class="dash-nav-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </nav>
+        </aside>
+        <main class="dash-main">
+            <header class="dash-header">
+                <div class="dash-toggle" id="dashToggle"><i class="fas fa-bars"></i></div>
+                <h2 style="font-size:18px;font-weight:600;color:var(--primary);">Assign Work</h2>
+                <div class="dash-profile">
+                    <div class="dash-profile-info"><span>Admin</span><small><span class="badge badge-admin">Administrator</span></small></div>
+                    <img src="assets/images/admin.jpg" alt="Admin">
+                </div>
+            </header>
+            <div class="dash-content">
+                <h1 class="dash-title">Assign Work to Technicians</h1>
+                <p class="dash-subtitle">Assign pending bookings to available technicians.</p>
+                <div class="dash-card">
+                    <div class="dash-card-header"><h3>Pending Bookings</h3></div>
+                    <div class="dash-card-body">
+                        <div class="dash-table-wrap">
+                            <table class="data-table">
+                                <thead><tr><th>ID</th><th>Client</th><th>Service</th><th>Date</th><th>Assign To</th><th>Action</th></tr></thead>
+                                <tbody id="assignTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/assets/js/main.js"></script>
+    <script src="/assets/js/api.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script src="/assets/js/admin.js"></script>
+    <script>
+        document.getElementById('dashToggle').addEventListener('click', () => { document.getElementById('dashSidebar').classList.toggle('active'); });
+        // Populate assign table from real API
+        async function loadAssignData() {
+            const table = document.getElementById('assignTable');
+            table.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>';
+            try {
+                const [bookingsRes, techsRes] = await Promise.all([
+                    API.get('/admin/bookings?status=pending'),
+                    API.get('/admin/technicians')
+                ]);
+                let bookings = [];
+                let technicians = [];
+                if (bookingsRes.success && bookingsRes.bookings) bookings = bookingsRes.bookings;
+                if (techsRes.success && techsRes.technicians) technicians = techsRes.technicians.filter(t => t.status === 'available');
+                if (bookings.length === 0) {
+                    table.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;">No pending bookings to assign</td></tr>';
+                    return;
+                }
+                const techOptions = technicians.map(t => `<option value="${t._id}">${t.name}</option>`).join('');
+                table.innerHTML = bookings.map(b => `
+                    <tr>
+                        <td>${b.bookingId || '#' + b._id.slice(-4)}</td>
+                        <td>${b.fullName || 'Guest'}</td>
+                        <td>${b.service || 'General'}</td>
+                        <td>${formatDate(b.preferredDate || b.createdAt)}</td>
+                        <td><select id="tech-${b._id}" style="padding:4px 8px;border-radius:4px;border:1px solid #ddd;font-size:12px;"><option value="">Select Tech</option>${techOptions || '<option disabled>No available techs</option>'}</select></td>
+                        <td><button class="btn-success" style="padding:4px 10px;font-size:12px;" onclick="assignBooking('${b._id}')">Assign</button></td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                table.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--danger);"><i class="fas fa-exclamation-circle"></i> Failed to load data</td></tr>';
+            }
+        }
+
+        async function assignBooking(bookingId) {
+            const techSelect = document.getElementById('tech-' + bookingId);
+            const techId = techSelect ? techSelect.value : '';
+            if (!techId) { showToast('Please select a technician', 'error'); return; }
+            try {
+                const res = await API.put('/admin/bookings/' + bookingId + '/assign', { technicianId: techId });
+                if (res.success) { showToast('Work assigned successfully!'); loadAssignData(); }
+                else { showToast(res.message || 'Failed to assign', 'error'); }
+            } catch (e) { showToast('Failed to assign booking', 'error'); }
+        }
+
+        loadAssignData();
+    </script>
+</body>
+</html>

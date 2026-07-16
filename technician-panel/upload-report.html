@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Report | Technician</title>
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="/assets/css/dashboard.css">
+    <link rel="stylesheet" href="/assets/css/responsive.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <script>
+    (function requireTechAuth() {
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (!token || user.role !== 'technician') {
+            window.location.href = 'https://anbi-tech.onrender.com/login.html';
+        }
+    })();
+    </script>
+    <div class="dash-layout">
+        <aside class="dash-sidebar" id="dashSidebar">
+            <div class="dash-sidebar-header"><i class="fas fa-microchip"></i><span>ANBI Tech</span></div>
+            <nav class="dash-nav">
+                <a href="dashboard.html" class="dash-nav-item"><i class="fas fa-home"></i> Dashboard</a>
+                <a href="jobs.html" class="dash-nav-item"><i class="fas fa-wrench"></i> My Jobs</a>
+                <a href="job-details.html" class="dash-nav-item"><i class="fas fa-clipboard-list"></i> Job Details</a>
+                <a href="upload-report.html" class="dash-nav-item active"><i class="fas fa-upload"></i> Upload Report</a>
+                <a href="#" onclick="logout();return false;" class="dash-nav-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </nav>
+        </aside>
+        <main class="dash-main">
+            <header class="dash-header">
+                <div class="dash-toggle" id="dashToggle"><i class="fas fa-bars"></i></div>
+                <h2 style="font-size:18px;font-weight:600;color:var(--primary);">Upload Report</h2>
+                <div class="dash-profile">
+                    <div class="dash-profile-info"><span>Technician</span><small><span class="badge badge-tech">Technician</span></small></div>
+                    <img src="assets/images/tech.jpg" alt="Tech">
+                </div>
+            </header>
+            <div class="dash-content">
+                <h1 class="dash-title">Upload Service Report</h1>
+                <p class="dash-subtitle">Submit completion reports and supporting documents.</p>
+                <div style="max-width:700px;">
+                    <div class="dash-card" style="padding:30px;">
+                        <form id="reportForm">
+                            <div class="form-group">
+                                <label>Select Job *</label>
+                                <select name="jobId" required>
+                                    <option value="">Loading jobs...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Work Completed *</label>
+                                <textarea name="workDone" placeholder="Describe the work completed..." required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Parts Used</label>
+                                <textarea name="partsUsed" placeholder="List any parts/components used..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Upload Images/Documents</label>
+                                <div style="border:2px dashed #ddd;border-radius:var(--radius-sm);padding:40px;text-align:center;cursor:pointer;" onclick="document.getElementById('fileInput').click()">
+                                    <i class="fas fa-cloud-upload-alt" style="font-size:40px;color:var(--secondary);margin-bottom:10px;"></i>
+                                    <p style="color:var(--gray);font-size:14px;">Click to upload or drag and drop files here</p>
+                                    <p style="color:var(--gray);font-size:12px;margin-top:5px;">Supported: JPG, PNG, PDF (Max 10MB)</p>
+                                </div>
+                                <input type="file" id="fileInput" style="display:none;" multiple accept=".jpg,.jpeg,.png,.pdf">
+                            </div>
+                            <div class="form-group">
+                                <label>Additional Notes</label>
+                                <textarea name="notes" placeholder="Any additional notes or recommendations..."></textarea>
+                            </div>
+                            <button type="submit" class="btn-primary" style="width:100%;justify-content:center;"><i class="fas fa-upload"></i> Submit Report</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/assets/js/main.js"></script>
+    <script src="/assets/js/api.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script>
+        document.getElementById('dashToggle').addEventListener('click', () => { document.getElementById('dashSidebar').classList.toggle('active'); });
+
+        // Load assigned jobs into select dropdown
+        async function loadReportJobs() {
+            const select = document.querySelector('#reportForm select[name="jobId"]');
+            try {
+                const data = await API.get('/tech/jobs?status=confirmed');
+                if (data.success && data.jobs && data.jobs.length > 0) {
+                    select.innerHTML = '<option value="">Select a job</option>' +
+                        data.jobs.map(j => `<option value="${j._id}">${j.bookingId || '#' + j._id.slice(-4)} - ${j.service} - ${j.fullName}</option>`).join('');
+                } else {
+                    select.innerHTML = '<option value="">No assigned jobs</option>';
+                }
+            } catch (e) {
+                select.innerHTML = '<option value="">Failed to load jobs</option>';
+            }
+        }
+
+        document.getElementById('reportForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+            submitBtn.disabled = true;
+
+            try {
+                const payload = {
+                    bookingId: form.querySelector('[name="jobId"]').value,
+                    workStatus: 'completed',
+                    workDescription: form.querySelector('[name="workDone"]').value.trim(),
+                    materialsUsed: form.querySelector('[name="partsUsed"]').value.trim() || undefined,
+                    customerFeedback: form.querySelector('[name="notes"]').value.trim() || undefined,
+                };
+
+                if (!payload.bookingId) {
+                    showToast('Please select a job', 'error');
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                    return;
+                }
+
+                const res = await API.post('/tech/reports', payload);
+                if (res.success) {
+                    showToast('Report submitted successfully!');
+                    form.reset();
+                    loadReportJobs();
+                } else {
+                    showToast(res.message || 'Failed to submit report', 'error');
+                }
+            } catch (err) {
+                showToast('Failed to submit report. Please try again.', 'error');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        loadReportJobs();
+    </script>
+</body>
+</html>

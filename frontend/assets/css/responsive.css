@@ -1,0 +1,52 @@
+/* ========================================
+   ANBI Tech Solution - Responsive Styles
+   ======================================== */
+
+@media (max-width: 1024px) {
+  .hero-container { grid-template-columns: 1fr; text-align: center; gap: 40px; }
+  .hero-stats { justify-content: center; }
+  .hero-visual { display: none; }
+  .services-grid, .why-grid, .values-grid, .why-about-grid { grid-template-columns: repeat(2, 1fr); }
+  .industries-grid { grid-template-columns: repeat(3, 1fr); }
+  .services-page-grid { grid-template-columns: repeat(2, 1fr); }
+  .industries-detail-grid { grid-template-columns: 1fr; }
+  .about-grid, .about-intro-grid, .booking-grid, .quote-grid, .contact-grid, .commitment-grid { grid-template-columns: 1fr; }
+  .footer-grid { grid-template-columns: repeat(2, 1fr); }
+  .process-timeline { flex-direction: column; gap: 40px; }
+  .process-timeline::before { display: none; }
+  .process-step { width: 100%; }
+  .dash-stats { grid-template-columns: repeat(2, 1fr); }
+  .dash-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .nav-menu { position: fixed; top: 70px; right: -100%; width: 80%; max-width: 300px; height: calc(100vh - 70px); background: #0A1628; flex-direction: column; padding: 24px; transition: all 0.3s ease; z-index: 999; }
+  .nav-menu.active { right: 0; }
+  .mobile-toggle { display: block; }
+  .hero-title { font-size: 36px; }
+  .section-title { font-size: 28px; }
+  .services-grid, .why-grid, .values-grid, .why-about-grid, .services-page-grid { grid-template-columns: 1fr; }
+  .industries-grid { grid-template-columns: repeat(2, 1fr); }
+  .about-intro-visual { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+  .footer-grid { grid-template-columns: 1fr; }
+  .mv-grid { grid-template-columns: 1fr; }
+  .commitment-stats { grid-template-columns: 1fr 1fr; }
+  .cta-content h2 { font-size: 28px; }
+  .dash-sidebar { transform: translateX(-100%); }
+  .dash-sidebar.active { transform: translateX(0); }
+  .dash-main { margin-left: 0; }
+  .dash-stats { grid-template-columns: 1fr; }
+  .dash-header { padding: 16px; }
+  .dash-content { padding: 20px; }
+}
+
+@media (max-width: 480px) {
+  .hero-title { font-size: 28px; }
+  .hero-stats { flex-direction: column; gap: 20px; }
+  .stat-item { text-align: center; }
+  .section-padding { padding: 60px 0; }
+  .commitment-stats { grid-template-columns: 1fr; }
+  .page-title { font-size: 28px; }
+  .industries-grid { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technician Panel | ANBI Tech Solution</title>
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="/assets/css/dashboard.css">
+    <link rel="stylesheet" href="/assets/css/responsive.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <script>
+    (function requireTechAuth() {
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (!token || user.role !== 'technician') {
+            window.location.href = 'https://anbi-tech.onrender.com/login.html';
+        }
+    })();
+    </script>
+    <div class="dash-layout">
+        <aside class="dash-sidebar" id="dashSidebar">
+            <div class="dash-sidebar-header"><i class="fas fa-microchip"></i><span>ANBI Tech</span></div>
+            <nav class="dash-nav">
+                <a href="dashboard.html" class="dash-nav-item active"><i class="fas fa-home"></i> Dashboard</a>
+                <a href="jobs.html" class="dash-nav-item"><i class="fas fa-wrench"></i> My Jobs</a>
+                <a href="job-details.html" class="dash-nav-item"><i class="fas fa-clipboard-list"></i> Job Details</a>
+                <a href="upload-report.html" class="dash-nav-item"><i class="fas fa-upload"></i> Upload Report</a>
+                <a href="#" onclick="logout();return false;" class="dash-nav-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </nav>
+        </aside>
+        <main class="dash-main">
+            <header class="dash-header">
+                <div class="dash-toggle" id="dashToggle"><i class="fas fa-bars"></i></div>
+                <h2 style="font-size:18px;font-weight:600;color:var(--primary);">Technician Panel</h2>
+                <div class="dash-profile">
+                    <div class="dash-profile-info"><span>Technician</span><small><span class="badge badge-tech">Technician</span></small></div>
+                    <img src="assets/images/tech.jpg" alt="Tech">
+                </div>
+            </header>
+            <div class="dash-content">
+                <h1 class="dash-title">Technician Dashboard</h1>
+                <p class="dash-subtitle">Overview of your assigned jobs and performance.</p>
+                <div class="dash-stats" id="techStats">
+                    <div class="stat-card"><div class="stat-card-icon blue"><i class="fas fa-tasks"></i></div><div class="stat-card-info"><h3 id="statActive">-</h3><p>Active Jobs</p></div></div>
+                    <div class="stat-card"><div class="stat-card-icon orange"><i class="fas fa-clock"></i></div><div class="stat-card-info"><h3 id="statInProgress">-</h3><p>In Progress</p></div></div>
+                    <div class="stat-card"><div class="stat-card-icon green"><i class="fas fa-check-circle"></i></div><div class="stat-card-info"><h3 id="statCompleted">-</h3><p>Completed</p></div></div>
+                    <div class="stat-card"><div class="stat-card-icon red"><i class="fas fa-star"></i></div><div class="stat-card-info"><h3 id="statRating">-</h3><p>Rating</p></div></div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-card-header"><h3>Recent Jobs</h3><a href="jobs.html" class="btn-primary" style="padding:6px 14px;font-size:12px;">View All</a></div>
+                    <div class="dash-card-body">
+                        <div class="dash-table-wrap">
+                            <table class="data-table">
+                                <thead><tr><th>ID</th><th>Service</th><th>Client</th><th>Date</th><th>Status</th></tr></thead>
+                                <tbody id="recentJobsTable"><tr><td colspan="5" style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/assets/js/main.js"></script>
+    <script src="/assets/js/api.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script>
+        document.getElementById('dashToggle').addEventListener('click', () => { document.getElementById('dashSidebar').classList.toggle('active'); });
+
+        async function loadTechDashboard() {
+            try {
+                const data = await API.get('/tech/dashboard');
+                if (data.success && data.stats) {
+                    document.getElementById('statActive').textContent = data.stats.activeJobs || 0;
+                    document.getElementById('statInProgress').textContent = data.stats.activeJobs || 0;
+                    document.getElementById('statCompleted').textContent = data.stats.completedJobs || 0;
+                    document.getElementById('statRating').textContent = (data.stats.rating || 0).toFixed(1);
+                }
+            } catch (e) {
+                console.error('Failed to load dashboard stats:', e);
+            }
+        }
+
+        async function loadRecentJobs() {
+            const table = document.getElementById('recentJobsTable');
+            try {
+                const data = await API.get('/tech/jobs');
+                if (data.success && data.jobs && data.jobs.length > 0) {
+                    const recent = data.jobs.slice(0, 5);
+                    table.innerHTML = recent.map(j => `
+                        <tr>
+                            <td>${j.bookingId || '#' + j._id.slice(-4)}</td>
+                            <td>${j.service || '-'}</td>
+                            <td>${j.fullName || '-'}</td>
+                            <td>${formatDate(j.preferredDate || j.createdAt)}</td>
+                            <td>${statusBadge(j.status)}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    table.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">No jobs assigned yet</td></tr>';
+                }
+            } catch (e) {
+                table.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--danger);">Failed to load jobs</td></tr>';
+            }
+        }
+
+        loadTechDashboard();
+        loadRecentJobs();
+    </script>
+</body>
+</html>

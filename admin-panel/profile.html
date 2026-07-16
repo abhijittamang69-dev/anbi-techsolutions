@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile | Admin</title>
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="/assets/css/dashboard.css">
+    <link rel="stylesheet" href="/assets/css/responsive.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <script>
+    (function requireAdminAuth() {
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (!token || user.role !== 'admin') {
+            window.location.href = 'https://anbi-tech.onrender.com/login.html';
+        }
+    })();
+    </script>
+    <div class="dash-layout">
+        <aside class="dash-sidebar" id="dashSidebar">
+            <div class="dash-sidebar-header"><i class="fas fa-microchip"></i><span>ANBI Tech</span></div>
+            <nav class="dash-nav">
+                <a href="dashboard.html" class="dash-nav-item"><i class="fas fa-home"></i> Dashboard</a>
+                <a href="bookings.html" class="dash-nav-item"><i class="fas fa-calendar-check"></i> Bookings</a>
+                <a href="quotations.html" class="dash-nav-item"><i class="fas fa-file-invoice"></i> Quotations</a>
+                <a href="technicians.html" class="dash-nav-item"><i class="fas fa-users-cog"></i> Technicians</a>
+                <a href="assign-work.html" class="dash-nav-item"><i class="fas fa-tasks"></i> Assign Work</a>
+                <a href="reports.html" class="dash-nav-item"><i class="fas fa-chart-bar"></i> Reports</a>
+                <a href="profile.html" class="dash-nav-item active"><i class="fas fa-user-circle"></i> My Profile</a>
+                <a href="#" onclick="logout();return false;" class="dash-nav-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </nav>
+        </aside>
+        <main class="dash-main">
+            <header class="dash-header">
+                <div class="dash-toggle" id="dashToggle"><i class="fas fa-bars"></i></div>
+                <h2 style="font-size:18px;font-weight:600;color:var(--primary);">My Profile</h2>
+                <div class="dash-profile">
+                    <div class="dash-profile-info"><span>Admin</span><small><span class="badge badge-admin">Administrator</span></small></div>
+                    <img src="assets/images/admin.jpg" alt="Admin">
+                </div>
+            </header>
+            <div class="dash-content">
+                <h1 class="dash-title">Profile Settings</h1>
+                <p class="dash-subtitle">Manage your account and security settings.</p>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+                    <div class="dash-card">
+                        <div class="dash-card-header"><h3><i class="fas fa-user" style="margin-right:8px;color:var(--primary);"></i>Account Information</h3></div>
+                        <div class="dash-card-body">
+                            <div class="form-group">
+                                <label>Name</label>
+                                <input type="text" id="profileName" readonly style="background:#f8fafc;">
+                            </div>
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="profileEmail" readonly style="background:#f8fafc;">
+                            </div>
+                            <div class="form-group">
+                                <label>Role</label>
+                                <input type="text" id="profileRole" readonly style="background:#f8fafc;">
+                            </div>
+                            <div class="form-group">
+                                <label>Phone</label>
+                                <input type="text" id="profilePhone" readonly style="background:#f8fafc;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dash-card">
+                        <div class="dash-card-header"><h3><i class="fas fa-lock" style="margin-right:8px;color:var(--primary);"></i>Change Password</h3></div>
+                        <div class="dash-card-body">
+                            <form id="changePasswordForm">
+                                <div class="form-group">
+                                    <label>Current Password <span style="color:var(--danger)">*</span></label>
+                                    <input type="password" id="currentPassword" required placeholder="Enter current password">
+                                </div>
+                                <div class="form-group">
+                                    <label>New Password <span style="color:var(--danger)">*</span></label>
+                                    <input type="password" id="newPassword" required placeholder="Min 6 characters" minlength="6">
+                                </div>
+                                <div class="form-group">
+                                    <label>Confirm New Password <span style="color:var(--danger)">*</span></label>
+                                    <input type="password" id="confirmPassword" required placeholder="Re-enter new password">
+                                </div>
+                                <button type="submit" class="btn-primary" style="width:100%;justify-content:center;" id="changePassBtn">
+                                    <i class="fas fa-key"></i> Change Password
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/assets/js/main.js"></script>
+    <script src="/assets/js/api.js"></script>
+    <script src="/assets/js/auth.js"></script>
+    <script>
+        document.getElementById('dashToggle').addEventListener('click', () => { document.getElementById('dashSidebar').classList.toggle('active'); });
+
+        // Load profile info
+        async function loadProfile() {
+            try {
+                const data = await API.get('/auth/me');
+                if (data.success && data.user) {
+                    document.getElementById('profileName').value = data.user.name || '';
+                    document.getElementById('profileEmail').value = data.user.email || '';
+                    document.getElementById('profileRole').value = data.user.role ? data.user.role.charAt(0).toUpperCase() + data.user.role.slice(1) : '';
+                    document.getElementById('profilePhone').value = data.user.phone || '+9779763381611';
+                }
+            } catch (e) {
+                console.error('Failed to load profile:', e);
+            }
+        }
+
+        // Change password
+        document.getElementById('changePasswordForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const btn = document.getElementById('changePassBtn');
+
+            if (newPassword !== confirmPassword) {
+                showToast('New passwords do not match!', 'error');
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                showToast('Password must be at least 6 characters', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner" style="border-color:rgba(255,255,255,0.3);border-top-color:#fff;"></span> Updating...';
+
+            try {
+                const res = await API.post('/auth/change-password', { currentPassword, newPassword });
+                if (res.success) {
+                    showToast('Password changed successfully!');
+                    document.getElementById('changePasswordForm').reset();
+                } else {
+                    showToast(res.message || 'Failed to change password', 'error');
+                }
+            } catch (e) {
+                showToast('Failed to change password', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-key"></i> Change Password';
+            }
+        });
+
+        loadProfile();
+    </script>
+</body>
+</html>
